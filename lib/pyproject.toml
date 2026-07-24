@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ruvic-wazuh-connector"
+version = "1.0.0"
+description = "Conector Ruvic para Wazuh: listar alertas, consultar un agente, y obtener el estado de los agentes"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31,<3.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["ruvic_wazuh_connector*"]

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conector Wazuh — Ruvic</title>
+  <link rel="stylesheet" href="assets/ruvic.css">
+</head>
+<body>
+  <main class="ruvic-container">
+    <nav class="ruvic-toc" aria-label="Índice">
+      <h2 data-i18n="toc_titulo">Contenido</h2>
+      <ol>
+        <li><a href="#que-es" data-i18n="toc_que_es">¿Qué es y para qué sirve?</a></li>
+        <li><a href="#prerrequisitos" data-i18n="toc_prerrequisitos">Prerrequisitos</a></li>
+        <li><a href="#configuracion-fabricante" data-i18n="toc_fabricante">Configuración en el fabricante</a></li>
+        <li><a href="#permisos" data-i18n="toc_permisos">Permisos requeridos</a></li>
+        <li><a href="#configuracion-ruvic" data-i18n="toc_ruvic">Configuración en Ruvic</a></li>
+        <li><a href="#verificacion" data-i18n="toc_verificacion">Verificación</a></li>
+        <li><a href="#solucion-problemas" data-i18n="toc_problemas">Solución de problemas</a></li>
+        <li><a href="#faq-seguridad" data-i18n="toc_faq">Preguntas frecuentes y notas de seguridad</a></li>
+      </ol>
+    </nav>
+
+    <h1 data-i18n="titulo">Conector Wazuh</h1>
+    <p class="guide-updated">{{ULTIMA_ACTUALIZACION}}</p>
+
+    <section>
+      <h2 id="que-es" data-i18n="que_es_h2">¿Qué es y para qué sirve?</h2>
+      <p data-i18n="que_es_p1">El conector Wazuh permite que el agente de Ruvic consulte alertas de seguridad y el estado de los agentes monitoreados en tu despliegue de Wazuh — listar alertas, ver el detalle de un agente específico, y obtener un resumen general de conectividad.</p>
+      <p data-i18n="que_es_p2">Una vez configurado, puedes pedirle al agente cosas como:</p>
+      <ul>
+        <li data-i18n="que_es_li1">"¿Qué alertas críticas hubo hoy?"</li>
+        <li data-i18n="que_es_li2">"¿Cuál es el estado del agente 001?"</li>
+        <li data-i18n="que_es_li3">"¿Cuántos agentes están conectados?"</li>
+      </ul>
+      <p data-i18n="que_es_p3">Operaciones soportadas:</p>
+      <table>
+        <thead><tr><th data-i18n="tabla_op_col1">Operación</th><th data-i18n="tabla_op_col2">Qué hace</th></tr></thead>
+        <tbody>
+          <tr><td><code>cybersecurity.list_alerts</code></td><td data-i18n="tabla_op_fila1">Lista alertas, con filtro de texto opcional</td></tr>
+          <tr><td><code>cybersecurity.get_agent</code></td><td data-i18n="tabla_op_fila2">Consulta el detalle de un agente</td></tr>
+          <tr><td><code>cybersecurity.get_agents_status_summary</code></td><td data-i18n="tabla_op_fila3">Obtiene el conteo de agentes por estado</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-info">
+        <span class="callout-title" data-i18n="callout_info_titulo">Dos componentes de Wazuh combinados</span>
+        <span data-i18n="callout_info_texto">Este conector habla con el Manager (gestión de agentes) y el Indexer (almacén de alertas, basado en OpenSearch) de forma transparente — necesitas las credenciales de ambos.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2 id="prerrequisitos" data-i18n="prereq_h2">Prerrequisitos</h2>
+      <ul>
+        <li data-i18n="prereq_li1">Un despliegue de <strong>Wazuh</strong> (Manager + Indexer) accesible por red desde donde corre Ruvic.</li>
+        <li data-i18n="prereq_li2">Acceso de administrador a Wazuh para crear usuarios de solo lectura en ambos componentes.</li>
+        <li data-i18n="prereq_li3">Para pruebas: puedes usar la demo pública oficial de Wazuh, o una instalación propia de prueba.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 id="configuracion-fabricante" data-i18n="fabricante_h2">Configuración en el fabricante</h2>
+      <ol class="ruvic-steps">
+        <li><strong data-i18n="fabricante_paso1_titulo">Crea un usuario de solo lectura en el Manager.</strong> <span data-i18n="fabricante_paso1_texto">Usa el sistema RBAC de Wazuh para crear un usuario con permisos de lectura sobre agentes — evita usar el usuario administrativo completo.</span></li>
+        <li><strong data-i18n="fabricante_paso2_titulo">Crea un usuario de solo lectura en el Indexer.</strong> <span data-i18n="fabricante_paso2_texto">Con permiso de lectura sobre el índice "wazuh-alerts-*".</span></li>
+        <li><strong data-i18n="fabricante_paso3_titulo">Anota los hosts y puertos.</strong> <span data-i18n="fabricante_paso3_texto">El Manager típicamente usa el puerto 55000, y el Indexer el 9200 — pueden estar en el mismo servidor o en servidores distintos según tu despliegue.</span></li>
+        <li><strong data-i18n="fabricante_paso4_titulo">Prueba desde línea de comandos (opcional pero recomendado).</strong></li>
+      </ol>
+      <pre><code>curl -sk -u usuario:contraseña -X POST "https://TU_MANAGER:55000/security/user/authenticate?raw=true"</code></pre>
+      <p data-i18n="fabricante_curl_nota">Una respuesta con un token JWT confirma que las credenciales del Manager funcionan.</p>
+    </section>
+
+    <section>
+      <h2 id="permisos" data-i18n="permisos_h2">Permisos requeridos</h2>
+      <table>
+        <thead><tr><th data-i18n="permisos_tabla_col1">Componente</th><th data-i18n="permisos_tabla_col2">Permiso necesario</th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="permisos_manager">Manager</td><td data-i18n="permisos_manager_uso">Rol RBAC con lectura sobre agentes</td></tr>
+          <tr><td data-i18n="permisos_indexer">Indexer</td><td data-i18n="permisos_indexer_uso">Lectura sobre el índice "wazuh-alerts-*"</td></tr>
+        </tbody>
+      </table>
+      <p data-i18n="permisos_nota">No uses las cuentas administrativas completas de ninguno de los dos componentes.</p>
+    </section>
+
+    <section>
+      <h2 id="configuracion-ruvic" data-i18n="ruvic_h2">Configuración en Ruvic</h2>
+      <p data-i18n="ruvic_p1">Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>Wazuh</strong> y pulsa <strong>Configurar</strong>.</p>
+      <p data-i18n="ruvic_p2">Completa los datos del Manager (host, usuario, contraseña) y del Indexer (host, usuario, contraseña) por separado.</p>
+      <p data-i18n="ruvic_p3">Guarda y pulsa <span class="ruvic-button" data-i18n="boton_probar_conexion">Probar conexión</span>.</p>
+    </section>
+
+    <section>
+      <h2 id="verificacion" data-i18n="verificacion_h2">Verificación</h2>
+      <ol class="ruvic-steps">
+        <li>
+          <strong data-i18n="verificacion_paso1_titulo">Test de conexión exitoso.</strong>
+          <p data-i18n="verificacion_paso1_texto">El botón <em>Probar conexión</em> debe responder: <em>"Conexión exitosa al Manager [host]"</em>.</p>
+        </li>
+        <li>
+          <strong data-i18n="verificacion_paso2_titulo">Prueba mínima con el agente.</strong>
+          <p data-i18n="verificacion_paso2_texto">Pide algo de solo lectura primero:</p>
+          <blockquote data-i18n="verificacion_paso2_cita">"¿Cuántos agentes están conectados?"</blockquote>
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2 id="solucion-problemas" data-i18n="problemas_h2">Solución de problemas</h2>
+      <table>
+        <thead><tr><th data-i18n="problemas_tabla_col1">Mensaje / síntoma</th><th data-i18n="problemas_tabla_col2">Causa probable y solución</th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="problemas_fila1_sintoma">"El Manager rechazó la autenticación"</td><td data-i18n="problemas_fila1_causa">Usuario o contraseña del Manager incorrectos.</td></tr>
+          <tr><td data-i18n="problemas_fila2_sintoma">list_alerts falla pero get_agent funciona</td><td data-i18n="problemas_fila2_causa">Las credenciales del Indexer están mal, o el usuario no tiene permiso sobre el índice "wazuh-alerts-*".</td></tr>
+          <tr><td data-i18n="problemas_fila3_sintoma">Error de certificado TLS</td><td data-i18n="problemas_fila3_causa">Muchas instalaciones de Wazuh usan certificados autofirmados — considera desactivar "Verificar SSL" solo si confías en la red.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2 id="faq-seguridad" data-i18n="faq_h2">Preguntas frecuentes y notas de seguridad</h2>
+      <h3 data-i18n="faq_p1_titulo">¿El agente puede modificar agentes o alertas?</h3>
+      <p data-i18n="faq_p1_texto">No. Este conector es de solo consulta — no reinicia agentes, no los elimina, ni modifica reglas o alertas.</p>
+
+      <h3 data-i18n="faq_p2_titulo">¿Por qué se necesitan credenciales de dos componentes distintos?</h3>
+      <p data-i18n="faq_p2_texto">Porque Wazuh separa la gestión de agentes (Manager) del almacenamiento de alertas (Indexer, basado en OpenSearch) — son servicios independientes con su propia autenticación.</p>
+
+      <h3 data-i18n="faq_p3_titulo">¿Dónde quedan guardadas las credenciales?</h3>
+      <p data-i18n="faq_p3_texto">Como secreto en el almacén de credenciales de la plataforma. La interfaz nunca vuelve a mostrarlas.</p>
+
+      <div class="callout callout-warning">
+        <span class="callout-title" data-i18n="buenas_practicas_titulo">Buenas prácticas</span>
+        <span data-i18n="buenas_practicas_texto">Usa cuentas de solo lectura en ambos componentes, nunca las administrativas; y ten presente que el token JWT del Manager expira cada 15 minutos por defecto (el conector lo renueva automáticamente, no necesitas gestionarlo).</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.I18N = window.I18N || {};
+    window.I18N['wazuh'] = {
+      es: {
+        "toc_titulo": "Contenido",
+        "toc_que_es": "¿Qué es y para qué sirve?",
+        "toc_prerrequisitos": "Prerrequisitos",
+        "toc_fabricante": "Configuración en el fabricante",
+        "toc_permisos": "Permisos requeridos",
+        "toc_ruvic": "Configuración en Ruvic",
+        "toc_verificacion": "Verificación",
+        "toc_problemas": "Solución de problemas",
+        "toc_faq": "Preguntas frecuentes y notas de seguridad",
+        "titulo": "Conector Wazuh",
+        "que_es_h2": "¿Qué es y para qué sirve?",
+        "que_es_p1": "El conector Wazuh permite que el agente de Ruvic consulte alertas de seguridad y el estado de los agentes monitoreados en tu despliegue de Wazuh — listar alertas, ver el detalle de un agente específico, y obtener un resumen general de conectividad.",
+        "que_es_p2": "Una vez configurado, puedes pedirle al agente cosas como:",
+        "que_es_li1": "\"¿Qué alertas críticas hubo hoy?\"",
+        "que_es_li2": "\"¿Cuál es el estado del agente 001?\"",
+        "que_es_li3": "\"¿Cuántos agentes están conectados?\"",
+        "que_es_p3": "Operaciones soportadas:",
+        "tabla_op_col1": "Operación",
+        "tabla_op_col2": "Qué hace",
+        "tabla_op_fila1": "Lista alertas, con filtro de texto opcional",
+        "tabla_op_fila2": "Consulta el detalle de un agente",
+        "tabla_op_fila3": "Obtiene el conteo de agentes por estado",
+        "callout_info_titulo": "Dos componentes de Wazuh combinados",
+        "callout_info_texto": "Este conector habla con el Manager (gestión de agentes) y el Indexer (almacén de alertas, basado en OpenSearch) de forma transparente — necesitas las credenciales de ambos.",
+        "prereq_h2": "Prerrequisitos",
+        "prereq_li1": "Un despliegue de <strong>Wazuh</strong> (Manager + Indexer) accesible por red desde donde corre Ruvic.",
+        "prereq_li2": "Acceso de administrador a Wazuh para crear usuarios de solo lectura en ambos componentes.",
+        "prereq_li3": "Para pruebas: puedes usar la demo pública oficial de Wazuh, o una instalación propia de prueba.",
+        "fabricante_h2": "Configuración en el fabricante",
+        "fabricante_paso1_titulo": "Crea un usuario de solo lectura en el Manager.",
+        "fabricante_paso1_texto": "Usa el sistema RBAC de Wazuh para crear un usuario con permisos de lectura sobre agentes — evita usar el usuario administrativo completo.",
+        "fabricante_paso2_titulo": "Crea un usuario de solo lectura en el Indexer.",
+        "fabricante_paso2_texto": "Con permiso de lectura sobre el índice \"wazuh-alerts-*\".",
+        "fabricante_paso3_titulo": "Anota los hosts y puertos.",
+        "fabricante_paso3_texto": "El Manager típicamente usa el puerto 55000, y el Indexer el 9200 — pueden estar en el mismo servidor o en servidores distintos según tu despliegue.",
+        "fabricante_paso4_titulo": "Prueba desde línea de comandos (opcional pero recomendado).",
+        "fabricante_curl_nota": "Una respuesta con un token JWT confirma que las credenciales del Manager funcionan.",
+        "permisos_h2": "Permisos requeridos",
+        "permisos_tabla_col1": "Componente",
+        "permisos_tabla_col2": "Permiso necesario",
+        "permisos_manager": "Manager",
+        "permisos_manager_uso": "Rol RBAC con lectura sobre agentes",
+        "permisos_indexer": "Indexer",
+        "permisos_indexer_uso": "Lectura sobre el índice \"wazuh-alerts-*\"",
+        "permisos_nota": "No uses las cuentas administrativas completas de ninguno de los dos componentes.",
+        "ruvic_h2": "Configuración en Ruvic",
+        "ruvic_p1": "Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>Wazuh</strong> y pulsa <strong>Configurar</strong>.",
+        "ruvic_p2": "Completa los datos del Manager (host, usuario, contraseña) y del Indexer (host, usuario, contraseña) por separado.",
+        "ruvic_p3": "Guarda y pulsa",
+        "boton_probar_conexion": "Probar conexión",
+        "verificacion_h2": "Verificación",
+        "verificacion_paso1_titulo": "Test de conexión exitoso.",
+        "verificacion_paso1_texto": "El botón <em>Probar conexión</em> debe responder: <em>\"Conexión exitosa al Manager [host]\"</em>.",
+        "verificacion_paso2_titulo": "Prueba mínima con el agente.",
+        "verificacion_paso2_texto": "Pide algo de solo lectura primero:",
+        "verificacion_paso2_cita": "\"¿Cuántos agentes están conectados?\"",
+        "problemas_h2": "Solución de problemas",
+        "problemas_tabla_col1": "Mensaje / síntoma",
+        "problemas_tabla_col2": "Causa probable y solución",
+        "problemas_fila1_sintoma": "\"El Manager rechazó la autenticación\"",
+        "problemas_fila1_causa": "Usuario o contraseña del Manager incorrectos.",
+        "problemas_fila2_sintoma": "list_alerts falla pero get_agent funciona",
+        "problemas_fila2_causa": "Las credenciales del Indexer están mal, o el usuario no tiene permiso sobre el índice \"wazuh-alerts-*\".",
+        "problemas_fila3_sintoma": "Error de certificado TLS",
+        "problemas_fila3_causa": "Muchas instalaciones de Wazuh usan certificados autofirmados — considera desactivar \"Verificar SSL\" solo si confías en la red.",
+        "faq_h2": "Preguntas frecuentes y notas de seguridad",
+        "faq_p1_titulo": "¿El agente puede modificar agentes o alertas?",
+        "faq_p1_texto": "No. Este conector es de solo consulta — no reinicia agentes, no los elimina, ni modifica reglas o alertas.",
+        "faq_p2_titulo": "¿Por qué se necesitan credenciales de dos componentes distintos?",
+        "faq_p2_texto": "Porque Wazuh separa la gestión de agentes (Manager) del almacenamiento de alertas (Indexer, basado en OpenSearch) — son servicios independientes con su propia autenticación.",
+        "faq_p3_titulo": "¿Dónde quedan guardadas las credenciales?",
+        "faq_p3_texto": "Como secreto en el almacén de credenciales de la plataforma. La interfaz nunca vuelve a mostrarlas.",
+        "buenas_practicas_titulo": "Buenas prácticas",
+        "buenas_practicas_texto": "Usa cuentas de solo lectura en ambos componentes, nunca las administrativas; y ten presente que el token JWT del Manager expira cada 15 minutos por defecto (el conector lo renueva automáticamente, no necesitas gestionarlo)."
+      },
+      en: {
+        "toc_titulo": "Contents",
+        "toc_que_es": "What is it and what is it for?",
+        "toc_prerrequisitos": "Prerequisites",
+        "toc_fabricante": "Vendor-side setup",
+        "toc_permisos": "Required permissions",
+        "toc_ruvic": "Setup in Ruvic",
+        "toc_verificacion": "Verification",
+        "toc_problemas": "Troubleshooting",
+        "toc_faq": "FAQ and security notes",
+        "titulo": "Wazuh Connector",
+        "que_es_h2": "What is it and what is it for?",
+        "que_es_p1": "The Wazuh connector lets the Ruvic agent query security alerts and the status of monitored agents in your Wazuh deployment — list alerts, view a specific agent's details, and get a general connectivity summary.",
+        "que_es_p2": "Once configured, you can ask the agent things like:",
+        "que_es_li1": "\"What critical alerts happened today?\"",
+        "que_es_li2": "\"What's the status of agent 001?\"",
+        "que_es_li3": "\"How many agents are connected?\"",
+        "que_es_p3": "Supported operations:",
+        "tabla_op_col1": "Operation",
+        "tabla_op_col2": "What it does",
+        "tabla_op_fila1": "Lists alerts, with optional text filter",
+        "tabla_op_fila2": "Gets an agent's details",
+        "tabla_op_fila3": "Gets agent counts by status",
+        "callout_info_titulo": "Two Wazuh components combined",
+        "callout_info_texto": "This connector transparently talks to the Manager (agent management) and the Indexer (alert storage, based on OpenSearch) — you'll need credentials for both.",
+        "prereq_h2": "Prerequisites",
+        "prereq_li1": "A <strong>Wazuh</strong> deployment (Manager + Indexer) network-reachable from where Ruvic runs.",
+        "prereq_li2": "Admin access to Wazuh to create read-only users on both components.",
+        "prereq_li3": "For testing: you can use Wazuh's official public demo, or your own test installation.",
+        "fabricante_h2": "Vendor-side setup",
+        "fabricante_paso1_titulo": "Create a read-only user on the Manager.",
+        "fabricante_paso1_texto": "Use Wazuh's RBAC system to create a user with read permissions over agents — avoid using the full admin user.",
+        "fabricante_paso2_titulo": "Create a read-only user on the Indexer.",
+        "fabricante_paso2_texto": "With read permission over the \"wazuh-alerts-*\" index.",
+        "fabricante_paso3_titulo": "Note the hosts and ports.",
+        "fabricante_paso3_texto": "The Manager typically uses port 55000, and the Indexer 9200 — they can be on the same server or different ones depending on your deployment.",
+        "fabricante_paso4_titulo": "Test from the command line (optional but recommended).",
+        "fabricante_curl_nota": "A response with a JWT token confirms the Manager credentials work.",
+        "permisos_h2": "Required permissions",
+        "permisos_tabla_col1": "Component",
+        "permisos_tabla_col2": "Required permission",
+        "permisos_manager": "Manager",
+        "permisos_manager_uso": "RBAC role with read access to agents",
+        "permisos_indexer": "Indexer",
+        "permisos_indexer_uso": "Read access to the \"wazuh-alerts-*\" index",
+        "permisos_nota": "Don't use the full admin accounts of either component.",
+        "ruvic_h2": "Setup in Ruvic",
+        "ruvic_p1": "Go to <strong>Settings → Connectors</strong>, find the <strong>Wazuh</strong> card and click <strong>Configure</strong>.",
+        "ruvic_p2": "Fill in the Manager details (host, username, password) and the Indexer details (host, username, password) separately.",
+        "ruvic_p3": "Save and click",
+        "boton_probar_conexion": "Test connection",
+        "verificacion_h2": "Verification",
+        "verificacion_paso1_titulo": "Successful connection test.",
+        "verificacion_paso1_texto": "The <em>Test connection</em> button should return: <em>\"Successful connection to Manager [host]\"</em>.",
+        "verificacion_paso2_titulo": "Minimal test with the agent.",
+        "verificacion_paso2_texto": "Ask something read-only first:",
+        "verificacion_paso2_cita": "\"How many agents are connected?\"",
+        "problemas_h2": "Troubleshooting",
+        "problemas_tabla_col1": "Message / symptom",
+        "problemas_tabla_col2": "Likely cause and fix",
+        "problemas_fila1_sintoma": "\"The Manager rejected authentication\"",
+        "problemas_fila1_causa": "Incorrect Manager username or password.",
+        "problemas_fila2_sintoma": "list_alerts fails but get_agent works",
+        "problemas_fila2_causa": "The Indexer credentials are wrong, or the user lacks permission on the \"wazuh-alerts-*\" index.",
+        "problemas_fila3_sintoma": "TLS certificate error",
+        "problemas_fila3_causa": "Many Wazuh installations use self-signed certificates — consider disabling \"Verify SSL\" only if you trust the network.",
+        "faq_h2": "FAQ and security notes",
+        "faq_p1_titulo": "Can the agent modify agents or alerts?",
+        "faq_p1_texto": "No. This connector is query-only — it doesn't restart agents, delete them, or modify rules or alerts.",
+        "faq_p2_titulo": "Why are credentials for two different components needed?",
+        "faq_p2_texto": "Because Wazuh separates agent management (Manager) from alert storage (Indexer, based on OpenSearch) — they're independent services with their own authentication.",
+        "faq_p3_titulo": "Where are the credentials stored?",
+        "faq_p3_texto": "As a secret in the platform's credential store. The UI never displays them again.",
+        "buenas_practicas_titulo": "Best practices",
+        "buenas_practicas_texto": "Use read-only accounts on both components, never admin ones; and keep in mind the Manager's JWT token expires every 15 minutes by default (the connector renews it automatically, you don't need to manage it)."
+      }
+    };
+  </script>
+</body>
+</html>
