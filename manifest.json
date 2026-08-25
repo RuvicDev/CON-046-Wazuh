@@ -1,0 +1,47 @@
+{
+  "id": "wazuh",
+  "name": "Wazuh",
+  "name_en": "Wazuh",
+  "version": "1.0.0",
+  "description": "Consulta de alertas y agentes en Wazuh: listar alertas, consultar un agente, y obtener el estado de los agentes.",
+  "description_en": "Query alerts and agents in Wazuh: list alerts, get an agent's details, and get agent status counts.",
+  "category": "cybersecurity",
+  "category_en": "cybersecurity",
+  "keywords": ["wazuh", "siem", "xdr", "alertas", "alerts", "agentes", "agents", "ciberseguridad", "cybersecurity", "opensearch"],
+  "icon": "icon.svg",
+  "library": {
+    "package": "ruvic-wazuh-connector",
+    "install": "pip install git+https://github.com/tu-org/conector-wazuh.git#subdirectory=lib",
+    "import_name": "ruvic_wazuh_connector"
+  },
+  "auth_modes": [
+    {
+      "id": "manager_and_indexer",
+      "label": "Usuario y contraseña (Manager + Indexer)",
+      "fields": [
+        { "key": "manager_host", "label": "Host del Manager", "type": "text", "required": true, "placeholder": "wazuh.miempresa.com" },
+        { "key": "manager_port", "label": "Puerto del Manager (opcional)", "type": "number", "required": false, "default": "55000" },
+        { "key": "manager_username", "label": "Usuario del Manager", "type": "text", "required": true, "placeholder": "wazuh-wui" },
+        { "key": "manager_password", "label": "Contraseña del Manager", "type": "password", "secret": true, "required": true },
+        { "key": "indexer_host", "label": "Host del Indexer", "type": "text", "required": true, "help_text": "Puede ser el mismo host del Manager o uno distinto, según tu despliegue." },
+        { "key": "indexer_port", "label": "Puerto del Indexer (opcional)", "type": "number", "required": false, "default": "9200" },
+        { "key": "indexer_username", "label": "Usuario del Indexer", "type": "text", "required": true, "placeholder": "admin" },
+        { "key": "indexer_password", "label": "Contraseña del Indexer", "type": "password", "secret": true, "required": true },
+        { "key": "verify_ssl", "label": "Verificar certificado SSL", "type": "boolean", "required": false, "default": "true", "help_text": "Muchas instalaciones de Wazuh usan certificados autofirmados — desactívalo solo si confías en la red." },
+        { "key": "token_lifetime", "label": "Vida útil asumida del token JWT (segundos)", "type": "number", "required": false, "default": "850" },
+        { "key": "request_timeout", "label": "Timeout de peticiones (segundos)", "type": "number", "required": false, "default": "30" }
+      ]
+    }
+  ],
+  "env_prefix": "RUVIC_WAZUH_",
+  "operations": [
+    "cybersecurity.list_alerts",
+    "cybersecurity.get_agent",
+    "cybersecurity.get_agents_status_summary"
+  ],
+  "test_connection": true,
+  "docs": {
+    "skill": "SKILL.md",
+    "permissions_note": "El usuario del Manager necesita un rol con permiso de lectura sobre agentes (RBAC de Wazuh) — no uses el usuario 'wazuh' administrativo completo si puedes crear uno acotado. El usuario del Indexer necesita permiso de lectura sobre el índice 'wazuh-alerts-*'. Este conector no modifica agentes ni alertas — es de solo consulta."
+  }
+}
